@@ -1,0 +1,1 @@
+00 14 * * * /home/go-channels/gozod > /dev/null
