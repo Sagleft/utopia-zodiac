@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -23,7 +22,7 @@ import (
 	"github.com/golang/freetype"
 	"github.com/golang/freetype/truetype"
 	"github.com/nfnt/resize"
-	"github.com/yanzay/tbot"
+	"github.com/yanzay/tbot/v2"
 )
 
 const (
@@ -55,7 +54,6 @@ type solutionParams struct {
 	BotToken        string
 	ChannelChatID   string
 	TimeVariant     string
-	Sunsigns        []sunsignData
 	ReplaceWordFrom string
 	RaplaceWordTo   string
 	DebugMode       bool
@@ -68,29 +66,30 @@ type sunsignData struct {
 	Icon string
 }
 
+var sunSigns = []sunsignData{
+	sunsignData{Tag: "aquarius", Icon: "♒️"},
+	sunsignData{Tag: "pisces", Icon: "♓️"},
+	sunsignData{Tag: "aries", Icon: "♈️"},
+	sunsignData{Tag: "taurus", Icon: "♉️"},
+	sunsignData{Tag: "gemini", Icon: "♊️"},
+	sunsignData{Tag: "cancer", Icon: "♋️"},
+	sunsignData{Tag: "leo", Icon: "♌️"},
+	sunsignData{Tag: "virgo", Icon: "♍️"},
+	sunsignData{Tag: "libra", Icon: "♎️"},
+	sunsignData{Tag: "scorpio", Icon: "♏️"},
+	sunsignData{Tag: "sagittarius", Icon: "♐️"},
+	sunsignData{Tag: "capricorn", Icon: "♑️"},
+}
+
 //https://api.telegram.org/bot<id>/getChat?chat_id=@<chat_tag>
 func newSolution() *solution {
 	stack.Caller(0) //init error stack
 	return &solution{
 		Config: solutionParams{
-			BotToken: "1799456628:AAFJzpTChhd1TSLi9xViS6qqfj-L3Li45_4",
+			BotToken: "",
 			//ChannelChatID: "@horoscopes_for_you",
-			ChannelChatID: "@testgozod",
-			TimeVariant:   "day",
-			Sunsigns: []sunsignData{
-				sunsignData{Tag: "aquarius", Icon: "♒️"},
-				sunsignData{Tag: "pisces", Icon: "♓️"},
-				sunsignData{Tag: "aries", Icon: "♈️"},
-				sunsignData{Tag: "taurus", Icon: "♉️"},
-				sunsignData{Tag: "gemini", Icon: "♊️"},
-				sunsignData{Tag: "cancer", Icon: "♋️"},
-				sunsignData{Tag: "leo", Icon: "♌️"},
-				sunsignData{Tag: "virgo", Icon: "♍️"},
-				sunsignData{Tag: "libra", Icon: "♎️"},
-				sunsignData{Tag: "scorpio", Icon: "♏️"},
-				sunsignData{Tag: "sagittarius", Icon: "♐️"},
-				sunsignData{Tag: "capricorn", Icon: "♑️"},
-			},
+			ChannelChatID:   "@testgozod",
+			TimeVariant:     "day",
 			ReplaceWordFrom: "Ganesha",
 			RaplaceWordTo:   "a wise man",
 		},
@@ -99,10 +98,6 @@ func newSolution() *solution {
 			"today": "", "week": "", "month": "", "year": "",
 		},
 	}
-}
-
-func errorStack(err error) error {
-	return errors.New(err.Error() + ", stack: " + stack.Trace().TrimRuntime().String())
 }
 
 func (sol *solution) parseArgs() error {
@@ -200,17 +195,15 @@ func (sol *solution) makePost() error {
 	case "today":
 		timeFormated := time.Now().Format(timeLayoutUS)
 		postText += "Horoscope for " + timeFormated + "\n\n"
-		break
 	case "month":
 		timeFormated := time.Now().Format(timeLayoutMonth)
 		postText += "Horoscope for " + timeFormated + "\n\n"
-		break
 	case "year":
 		timeFormated := time.Now().Format(timeLayoutYear)
 		postText += "Horoscope for " + timeFormated + "year\n\n"
-		break
 	}
-	for i, sunsignInfo := range sol.Config.Sunsigns {
+
+	for i, sunsignInfo := range sunSigns {
 		sunsign := sunsignInfo.Tag
 		forecastResponse, err := sol.getZodiacForecast(sunsign)
 		if err != nil {
@@ -218,9 +211,9 @@ func (sol *solution) makePost() error {
 		}
 		newPostPart := sunsignInfo.Icon + " " + strings.Title(sunsign) + "\n✨ " + forecastResponse.Text + "\n\n"
 		//check post length
-		if len(postText+newPostPart) > postMaxLength || i == len(sol.Config.Sunsigns)-1 {
+		if len(postText+newPostPart) > postMaxLength || i == len(sunSigns)-1 {
 			//send post part or full post (if it is last post part)
-			if i == len(sol.Config.Sunsigns)-1 {
+			if i == len(sunSigns)-1 {
 				postText += sol.Config.ChannelChatID
 			}
 			err := sol.sendPost(postText)
@@ -271,10 +264,10 @@ func (sol *solution) sendPost(postText string) error {
 	if parseErr != nil {
 		return parseErr
 	}
-	if tResp.OK == false {
+	if !tResp.OK {
 		return errors.New(tResp.Description)
 	}
-	//fmt.Println(tResp)
+
 	//pin post if time variant "month" given
 	if sol.Config.TimeVariant == "month" {
 		err := sol.pinChatMessage(tResp.Result.MessageID)
@@ -304,7 +297,7 @@ func (sol *solution) pinChatMessage(msgID int64) error {
 	if parseErr != nil {
 		return parseErr
 	}
-	if tResp.OK == false {
+	if !tResp.OK {
 		return errors.New(tResp.Description)
 	}
 	return nil
@@ -340,25 +333,24 @@ func addLabel(img *image.RGBA, x, y int, fontSize float64, label string, fontHan
 }
 
 func (sol *solution) createPostImage(timeData time.Time) error {
-	//get moon phase
+	// get moon phase
 	time := time.Now()
 	moonPhaseData := MoonPhase.New(time)
-	//fmt.Println(moonPhaseData.SunDistance())
 
-	//get file io
+	// get file io
 	f, err := os.Open(postImageInput)
-	defer f.Close()
 	if err != nil {
 		return nil
 	}
+	defer f.Close()
 
-	//load image
+	// load image
 	img, _, err := image.Decode(f)
 	if err != nil {
 		return err
 	}
 
-	//draw moon phase
+	// draw moon phase
 	var moonPhaseIndex int = int(math.Round(moonPhaseData.Phase()))
 	if moonPhaseIndex == 8 {
 		moonPhaseIndex = 7 //index fix
@@ -376,13 +368,11 @@ func (sol *solution) createPostImage(timeData time.Time) error {
 	moonPoint := image.Pt(moonCornerPosX-moonSize, moonCornerPosY-moonSize)
 	imageResult := image.NewRGBA(img.Bounds())
 	draw.Draw(imageResult, img.Bounds(), img, image.Point{0, 0}, draw.Over)
-	/*moonPoint2 := image.Pt(moonCornerPosX+moonSize, moonCornerPosY+moonSize)
-	moonRect := image.Rectangle{moonPoint, moonPoint2}
-	draw.Draw(imageResult, moonRect, moonImg, moonPoint, draw.Over)*/
+
 	resizedMoon := resize.Resize(moonSize, moonSize, moonImg, resize.Lanczos3)
 	draw.Draw(imageResult, moonImg.Bounds(), resizedMoon, moonPoint, draw.Over)
 
-	//load fonts
+	// load fonts
 	fontRegular, err := loadFont("fonts/Akrobat-Regular.ttf")
 	if err != nil {
 		return err
@@ -392,16 +382,16 @@ func (sol *solution) createPostImage(timeData time.Time) error {
 		return err
 	}
 
-	//draw moon phase info
-	//drawStringPoint := freetype.Pt(10, 10+int(fontRegularContext.PointToFixed(24)>>6))
-	//drawStringPoint := freetype.Pt(10, 10)
+	// draw moon phase info
+	// drawStringPoint := freetype.Pt(10, 10+int(fontRegularContext.PointToFixed(24)>>6))
+	// drawStringPoint := freetype.Pt(10, 10)
 	addLabel(imageResult, moonTitlePosX, moonTitlePosY, 20, moonPhaseData.PhaseName(), fontRegular)
 
-	//draw day info
+	// draw day info
 	addLabel(imageResult, 650, 40, 28, timeData.Format(timeLayoutUS), fontBold)
 	addLabel(imageResult, 680, 80, 20, timeData.Format(timeLayoutDay), fontRegular)
 
-	//save image
+	// save image
 	f, err = os.Create(postImageOutput)
 	if err != nil {
 		return err
@@ -411,32 +401,9 @@ func (sol *solution) createPostImage(timeData time.Time) error {
 	return err
 }
 
-func getRuntimePath() string {
-	/*var dir string = ""
-	var err error
-	dir, err = filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		dir = ""
-	}
-	return dir*/
-	ex, err := os.Executable()
-	if err != nil {
-		panic(err)
-	}
-	return filepath.Dir(ex)
-}
-
 func (sol *solution) sendPostImage() error {
 	bot := tbot.New(sol.Config.BotToken)
 	client := bot.Client()
-	//tbot.OptCaption("this is image")
-	//fmt.Println(getRuntimePath() + "/post.png")
-	//_, err := client.SendPhotoFile(sol.Config.ChannelChatID, getRuntimePath()+"/post.png")
 	_, err := client.SendPhotoFile(sol.Config.ChannelChatID, "post.png")
 	return err
-
-	/*bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_APITOKEN"))
-	if err != nil {
-		return err
-	}*/
 }
