@@ -18,84 +18,29 @@ import (
 	"time"
 
 	"github.com/IvanMenshykov/MoonPhase"
-	"github.com/go-stack/stack"
 	"github.com/golang/freetype"
 	"github.com/golang/freetype/truetype"
 	"github.com/nfnt/resize"
 	"github.com/yanzay/tbot/v2"
 )
 
-const (
-	timeLayoutUS    = "January 2"
-	timeLayoutMonth = "January"
-	timeLayoutDay   = "Monday"
-	timeLayoutYear  = "2006"
-	postImageWidth  = 800
-	postImageHeight = 450
-	postImageInput  = "img/post_template.png"
-	postImageOutput = "post.png"
-
-	postMaxLength = 4096
-
-	moonCornerPosX = 32
-	moonCornerPosY = 18
-	moonSize       = 60
-	moonTitlePosX  = 100
-	moonTitlePosY  = 76
-)
-
-type solution struct {
-	Config  solutionParams
-	APIBase string
-	API     apiVariants
-}
-
-type solutionParams struct {
-	BotToken        string
-	ChannelChatID   string
-	TimeVariant     string
-	ReplaceWordFrom string
-	RaplaceWordTo   string
-	DebugMode       bool
-}
-
-type apiVariants map[string]string
-
-type sunsignData struct {
-	Tag  string
-	Icon string
-}
-
-var sunSigns = []sunsignData{
-	sunsignData{Tag: "aquarius", Icon: "♒️"},
-	sunsignData{Tag: "pisces", Icon: "♓️"},
-	sunsignData{Tag: "aries", Icon: "♈️"},
-	sunsignData{Tag: "taurus", Icon: "♉️"},
-	sunsignData{Tag: "gemini", Icon: "♊️"},
-	sunsignData{Tag: "cancer", Icon: "♋️"},
-	sunsignData{Tag: "leo", Icon: "♌️"},
-	sunsignData{Tag: "virgo", Icon: "♍️"},
-	sunsignData{Tag: "libra", Icon: "♎️"},
-	sunsignData{Tag: "scorpio", Icon: "♏️"},
-	sunsignData{Tag: "sagittarius", Icon: "♐️"},
-	sunsignData{Tag: "capricorn", Icon: "♑️"},
+func main() {
+	sol := newSolution()
+	err := sol.run()
+	if err != nil {
+		panic(err)
+	}
 }
 
 //https://api.telegram.org/bot<id>/getChat?chat_id=@<chat_tag>
 func newSolution() *solution {
-	stack.Caller(0) //init error stack
 	return &solution{
 		Config: solutionParams{
-			BotToken: "",
-			//ChannelChatID: "@horoscopes_for_you",
+			BotToken:        "",
 			ChannelChatID:   "@testgozod",
 			TimeVariant:     "day",
 			ReplaceWordFrom: "Ganesha",
 			RaplaceWordTo:   "a wise man",
-		},
-		APIBase: "http://horoscope-api.herokuapp.com/horoscope/",
-		API: apiVariants{
-			"today": "", "week": "", "month": "", "year": "",
 		},
 	}
 }
@@ -119,16 +64,9 @@ func (sol *solution) parseArgs() error {
 }
 
 func (sol *solution) isTimeVariantExists() bool {
-	_, exists := sol.API[sol.Config.TimeVariant]
+	_, exists := APITimeVariants[sol.Config.TimeVariant]
 	return exists
 }
-
-/*func (sol *solution) getAPIurl() string {
-	if !sol.isTimeVariantExists() {
-		return ""
-	}
-	return sol.API[sol.Config.TimeVariant]
-}*/
 
 type horoscopeResponse struct {
 	Date    string `json:"date"`
@@ -137,29 +75,37 @@ type horoscopeResponse struct {
 }
 
 func (sol *solution) getZodiacForecast(sunsign string) (*horoscopeResponse, error) {
-	URL := sol.APIBase + sol.Config.TimeVariant + "/" + sunsign
-	//fmt.Println(URL)
+	URL := APIBaseURL + sol.Config.TimeVariant + "/" + sunsign
 	resp, err := http.Get(URL)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	//fmt.Println(string(body))
+
 	hObj := horoscopeResponse{}
 	parseErr := json.Unmarshal(body, &hObj)
 	if parseErr != nil {
 		return nil, parseErr
 	}
+
 	//feels Genesha -> sage tells
-	hObj.Text = strings.Replace(hObj.Text, "feels "+sol.Config.ReplaceWordFrom, sol.Config.RaplaceWordTo+" tells", -1)
+	hObj.Text = strings.Replace(
+		hObj.Text, "feels "+sol.Config.ReplaceWordFrom,
+		sol.Config.RaplaceWordTo+" tells", -1,
+	)
 	//Genesha -> sage
-	hObj.Text = strings.Replace(hObj.Text, sol.Config.ReplaceWordFrom, sol.Config.RaplaceWordTo, -1)
+	hObj.Text = strings.Replace(
+		hObj.Text, sol.Config.ReplaceWordFrom,
+		sol.Config.RaplaceWordTo, -1,
+	)
 	//. sage -> . A sage
-	hObj.Text = strings.Replace(hObj.Text, ". "+sol.Config.RaplaceWordTo, ". "+strings.Title(sol.Config.RaplaceWordTo), -1)
+	hObj.Text = strings.Replace(hObj.Text, ". "+sol.Config.RaplaceWordTo, ". "+
+		strings.ToTitle(sol.Config.RaplaceWordTo), -1)
 	return &hObj, nil
 }
 
@@ -209,7 +155,9 @@ func (sol *solution) makePost() error {
 		if err != nil {
 			return err
 		}
-		newPostPart := sunsignInfo.Icon + " " + strings.Title(sunsign) + "\n✨ " + forecastResponse.Text + "\n\n"
+		newPostPart := sunsignInfo.Icon + " " + strings.ToTitle(sunsign) + "\n✨ " +
+			forecastResponse.Text + "\n\n"
+
 		//check post length
 		if len(postText+newPostPart) > postMaxLength || i == len(sunSigns)-1 {
 			//send post part or full post (if it is last post part)
@@ -225,7 +173,6 @@ func (sol *solution) makePost() error {
 			postText += newPostPart
 		}
 	}
-	//fmt.Println(postText)
 	return nil
 }
 
@@ -308,6 +255,7 @@ func loadFont(fontFilePath string) (*truetype.Font, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	fontHandler, err := truetype.Parse(b)
 	if err != nil {
 		return nil, err
@@ -324,7 +272,6 @@ func addLabel(img *image.RGBA, x, y int, fontSize float64, label string, fontHan
 	fontContext.SetClip(img.Bounds())
 	fontContext.SetSrc(image.NewUniform(color.Gray16{0x3030}))
 	pt := freetype.Pt(x, y+int(fontContext.PointToFixed(fontSize)>>6))
-	//pt := freetype.Pt(x, y)
 
 	if _, err := fontContext.DrawString(label, pt); err != nil {
 		return err
