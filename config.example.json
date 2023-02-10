@@ -1,6 +1,6 @@
 {
 	"channelID": "",
-	"timeVariant": "",
+	"timeVariant": "today",
 	"wordReplace": {
 		"from": "Ganesha",
 		"to": "a wise man"

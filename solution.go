@@ -1,7 +1,7 @@
 package main
 
 import (
-	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -50,8 +50,9 @@ func (sol *solution) isTimeVariantExists() bool {
 func (sol *solution) makePost() error {
 	var postText string = ""
 	if !sol.isTimeVariantExists() {
-		return errors.New("failed to get api url for timevariant")
+		return fmt.Errorf("unknown time variant given: %s", sol.Config.TimeVariant)
 	}
+
 	switch sol.Config.TimeVariant {
 	case "today":
 		timeFormated := time.Now().Format(timeLayoutUS)

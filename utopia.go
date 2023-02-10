@@ -11,7 +11,7 @@ import (
 
 func (app *solution) utopiaConnect() error {
 	if !app.Utopia.CheckClientConnection() {
-		return errors.New("failed to open connection to Utopia")
+		return errors.New("failed to open connection to Utopia. check host, token or port")
 	}
 	return nil
 }
