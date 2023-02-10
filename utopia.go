@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"net/url"
 
 	swissknife "github.com/Sagleft/swiss-knife"
 )
@@ -29,8 +28,7 @@ func (app *solution) sendPostImage() error {
 }
 
 func (app *solution) sendPost(postText string) error {
-	msg := url.QueryEscape(postText)
-	_, err := app.Utopia.SendChannelMessage(app.Config.ChannelID, msg)
+	_, err := app.Utopia.SendChannelMessage(app.Config.ChannelID, postText)
 	return err
 
 	// TBD: pin post if time variant "month" given
