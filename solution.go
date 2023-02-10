@@ -33,8 +33,24 @@ func main() {
 	}
 
 	sol := newSolution(cfg)
-	err := sol.run()
-	if err != nil {
+
+	if err := sol.parseArgs(); err != nil {
+		log.Fatalln(err)
+	}
+
+	if err := sol.utopiaConnect(); err != nil {
+		log.Fatalln(err)
+	}
+
+	if err := sol.makePost(); err != nil {
+		log.Fatalln(err)
+	}
+
+	if err := sol.createPostImage(time.Now()); err != nil {
+		log.Fatalln(err)
+	}
+
+	if err := sol.sendPostImage(); err != nil {
 		log.Fatalln(err)
 	}
 }
@@ -46,7 +62,16 @@ func newSolution(cfg config) *solution {
 	}
 }
 
+func (app *solution) utopiaConnect() error {
+	if !app.Utopia.CheckClientConnection() {
+		return errors.New("failed to open connection to Utopia")
+	}
+	return nil
+}
+
 func (sol *solution) parseArgs() error {
+	// TODO: move to config
+
 	timeVariant := flag.String("variant", "today", "today/week/month/year")
 	isDebugMode := flag.Bool("debug", false, "debug mode disable notification & show debug log")
 	flag.Parse()
@@ -56,7 +81,7 @@ func (sol *solution) parseArgs() error {
 	if isDebugMode != nil {
 		sol.Config.DebugMode = *isDebugMode
 	}
-	//fmt.Println("is debug: ", sol.Config.DebugMode)
+
 	sol.Config.TimeVariant = *timeVariant
 	if !sol.isTimeVariantExists() {
 		return errors.New("unknown time variant given")
@@ -108,29 +133,6 @@ func (sol *solution) getZodiacForecast(sunsign string) (*horoscopeResponse, erro
 	hObj.Text = strings.Replace(hObj.Text, ". "+sol.Config.RaplaceWordTo, ". "+
 		strings.ToTitle(sol.Config.RaplaceWordTo), -1)
 	return &hObj, nil
-}
-
-func (sol *solution) run() error {
-	err := sol.parseArgs()
-	if err != nil {
-		panic(err)
-	}
-
-	err = sol.makePost()
-	if err != nil {
-		return err
-	}
-
-	err = sol.createPostImage(time.Now())
-	if err != nil {
-		return err
-	}
-
-	err = sol.sendPostImage()
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (sol *solution) makePost() error {
