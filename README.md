@@ -1,4 +1,6 @@
-# utopia-zodiac
+
+![screenshot](screenshot.png)
+
 :waxing_crescent_moon: An example of WEB 3.0 horoscope bot
 
 ## :zap: Configuring the bot
