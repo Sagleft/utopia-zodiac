@@ -18,6 +18,14 @@ About fields in the config:
 
 How to get parameters to connect to the Utopia API can be found [in this documentation](https://udocs.gitbook.io/utopia-api/utopia-api/how-to-enable-api-access).
 
+### How to run a bot
+
+When you run the bot, the post will be placed in the channel. So you can schedule the bot to run every day, for example, to post daily horoscopes to the channel.
+
+You can use the Cron startup.
+
+You can choose an interval of "a month" and post not only to the channel, but also to the chat room.
+
 ## :gear: Build from sources
 
 ```bash
