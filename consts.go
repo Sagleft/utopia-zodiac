@@ -1,15 +1,16 @@
 package main
 
 const (
-	timeLayoutUS    = "January 2"
-	timeLayoutMonth = "January"
-	timeLayoutDay   = "Monday"
-	timeLayoutYear  = "2006"
-	postImageWidth  = 800
-	postImageHeight = 450
-	postImageInput  = "img/post_template.png"
-	postImageOutput = "post.png"
-	configFilePath  = "config.json"
+	timeLayoutUS      = "January 2"
+	timeLayoutMonth   = "January"
+	timeLayoutDay     = "Monday"
+	timeLayoutYear    = "2006"
+	postImageWidth    = 800
+	postImageHeight   = 450
+	postImageInput    = "img/post_template.png"
+	postImageOutput   = "post.png"
+	postImageFilename = postImageOutput
+	configFilePath    = "config.json"
 
 	postMaxLength = 4096
 

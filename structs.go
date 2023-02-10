@@ -26,3 +26,9 @@ type sunsignData struct {
 	Tag  string
 	Icon string
 }
+
+type horoscopeResponse struct {
+	Date    string `json:"date"`
+	Text    string `json:"horoscope"`
+	Sunsign string `json:"sunsign"`
+}

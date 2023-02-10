@@ -1,16 +1,18 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"image"
-	"image/color"
 	"image/draw"
 	"image/png"
 	"io/ioutil"
 	"log"
 	"math"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -19,10 +21,7 @@ import (
 	"github.com/IvanMenshykov/MoonPhase"
 	swissknife "github.com/Sagleft/swiss-knife"
 	utopiago "github.com/Sagleft/utopialib-go/v2"
-	"github.com/golang/freetype"
-	"github.com/golang/freetype/truetype"
 	"github.com/nfnt/resize"
-	"github.com/yanzay/tbot/v2"
 )
 
 func main() {
@@ -69,12 +68,6 @@ func (sol *solution) isTimeVariantExists() bool {
 	return exists
 }
 
-type horoscopeResponse struct {
-	Date    string `json:"date"`
-	Text    string `json:"horoscope"`
-	Sunsign string `json:"sunsign"`
-}
-
 func (sol *solution) getZodiacForecast(sunsign string) (*horoscopeResponse, error) {
 	URL := APIBaseURL + sol.Config.TimeVariant + "/" + sunsign
 	resp, err := http.Get(URL)
@@ -94,19 +87,19 @@ func (sol *solution) getZodiacForecast(sunsign string) (*horoscopeResponse, erro
 		return nil, parseErr
 	}
 
-	//feels Genesha -> sage tells
+	// feels Genesha -> sage tells
 	hObj.Text = strings.Replace(
-		hObj.Text, "feels "+sol.Config.ReplaceWordFrom,
-		sol.Config.RaplaceWordTo+" tells", -1,
+		hObj.Text, "feels "+sol.Config.WordFilter.ReplaceWordFrom,
+		sol.Config.WordFilter.RaplaceWordTo+" tells", -1,
 	)
-	//Genesha -> sage
+	// Genesha -> sage
 	hObj.Text = strings.Replace(
-		hObj.Text, sol.Config.ReplaceWordFrom,
-		sol.Config.RaplaceWordTo, -1,
+		hObj.Text, sol.Config.WordFilter.ReplaceWordFrom,
+		sol.Config.WordFilter.RaplaceWordTo, -1,
 	)
-	//. sage -> . A sage
-	hObj.Text = strings.Replace(hObj.Text, ". "+sol.Config.RaplaceWordTo, ". "+
-		strings.ToTitle(sol.Config.RaplaceWordTo), -1)
+	// . sage -> . A sage
+	hObj.Text = strings.Replace(hObj.Text, ". "+sol.Config.WordFilter.RaplaceWordTo, ". "+
+		strings.ToTitle(sol.Config.WordFilter.RaplaceWordTo), -1)
 	return &hObj, nil
 }
 
@@ -136,9 +129,9 @@ func (sol *solution) makePost() error {
 		newPostPart := sunsignInfo.Icon + " " + strings.ToTitle(sunsign) + "\n✨ " +
 			forecastResponse.Text + "\n\n"
 
-		//check post length
+		// check post length
 		if len(postText+newPostPart) > postMaxLength || i == len(sunSigns)-1 {
-			//send post part or full post (if it is last post part)
+			// send post part or full post (if it is last post part)
 			if i == len(sunSigns)-1 {
 				postText += sol.Config.ChannelID
 			}
@@ -154,106 +147,18 @@ func (sol *solution) makePost() error {
 	return nil
 }
 
-type telegramResponse struct {
-	OK          bool                   `json:"ok"`
-	Result      telegramResponseResult `json:"result"`
-	Description string                 `json:"description"`
-}
-
-type telegramResponseResult struct {
-	MessageID int64 `json:"message_id"`
-	Date      int64 `json:"date"`
-}
-
 func (app *solution) sendPost(postText string) error {
-	//https://api.telegram.org/bot<token>/sendMessage?chat_id=<...>&text=<...>
-	/*tgAPIURL := "https://api.telegram.org/bot" + app.Config.ChannelID +
-	"/sendMessage?chat_id=" + app.Config.ChannelID +
-	"&text=" + url.QueryEscape(postText)*/
-
-	if app.Config.DebugMode {
-		tgAPIURL += "&disable_notification=true"
-	}
-	resp, err := http.Get(tgAPIURL)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	tResp := telegramResponse{}
-	parseErr := json.Unmarshal(body, &tResp)
-	if parseErr != nil {
-		return parseErr
-	}
-	if !tResp.OK {
-		return errors.New(tResp.Description)
-	}
+	msg := url.QueryEscape(postText)
+	_, err := app.Utopia.SendChannelMessage(app.Config.ChannelID, msg)
+	return err
 
 	// pin post if time variant "month" given
-	if app.Config.TimeVariant == "month" {
+	/*if app.Config.TimeVariant == "month" {
 		err := app.pinChatMessage(tResp.Result.MessageID)
 		if err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-func (app *solution) pinChatMessage(msgID int64) error {
-	/*tgAPIURL := "https://api.telegram.org/bot" + sol.Config.BotToken +
-	"/pinChatMessage?chat_id=" + sol.Config.ChannelID +
-	"&message_id=" + strconv.FormatInt(msgID, 10) + "&disable_notification=true"*/
-
-	resp, err := http.Get(tgAPIURL)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	tResp := telegramResponse{}
-	parseErr := json.Unmarshal(body, &tResp)
-	if parseErr != nil {
-		return parseErr
-	}
-	if !tResp.OK {
-		return errors.New(tResp.Description)
-	}
-	return nil
-}
-
-func loadFont(fontFilePath string) (*truetype.Font, error) {
-	b, err := ioutil.ReadFile(fontFilePath)
-	if err != nil {
-		return nil, err
-	}
-
-	fontHandler, err := truetype.Parse(b)
-	if err != nil {
-		return nil, err
-	}
-	return fontHandler, nil
-}
-
-func addLabel(img *image.RGBA, x, y int, fontSize float64, label string, fontHandler *truetype.Font) error {
-	fontContext := freetype.NewContext()
-	fontContext.SetDPI(72)
-	fontContext.SetFont(fontHandler)
-	fontContext.SetFontSize(fontSize)
-	fontContext.SetDst(img)
-	fontContext.SetClip(img.Bounds())
-	fontContext.SetSrc(image.NewUniform(color.Gray16{0x3030}))
-	pt := freetype.Pt(x, y+int(fontContext.PointToFixed(fontSize)>>6))
-
-	if _, err := fontContext.DrawString(label, pt); err != nil {
-		return err
-	}
+	}*/
 	return nil
 }
 
@@ -326,9 +231,14 @@ func (sol *solution) createPostImage(timeData time.Time) error {
 	return err
 }
 
-func (sol *solution) sendPostImage() error {
-	bot := tbot.New(sol.Config.BotToken)
-	client := bot.Client()
-	_, err := client.SendPhotoFile(sol.Config.ChannelID, "post.png")
+func (app *solution) sendPostImage() error {
+	imageBytes, err := swissknife.ReadFileToBytes(postImageOutput)
+	if err != nil {
+		return fmt.Errorf("read post image: %w", err)
+	}
+
+	imgEncoded := base64.StdEncoding.EncodeToString(imageBytes)
+
+	_, err = app.Utopia.SendChannelPicture(app.Config.ChannelID, imgEncoded, "", postImageFilename)
 	return err
 }
