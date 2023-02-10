@@ -8,6 +8,7 @@ type solution struct {
 }
 
 type config struct {
+	APIKey      string          `json:"apikey"`
 	ChannelID   string          `json:"channelID"`
 	TimeVariant string          `json:"timeVariant"`
 	WordFilter  wordFilter      `json:"wordReplace"`

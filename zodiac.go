@@ -2,22 +2,35 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
 )
 
-func (sol *solution) getZodiacForecast(sunsign string) (*horoscopeResponse, error) {
-	URL := APIBaseURL + sol.Config.TimeVariant + "/" + sunsign
-	resp, err := http.Get(URL)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+func (app *solution) getZodiacForecast(sunsign string) (*horoscopeResponse, error) {
+	url := fmt.Sprintf(
+		"%s?day=%s&sunsign=%s",
+		APIBaseURL, app.Config.TimeVariant, sunsign,
+	)
 
-	body, err := ioutil.ReadAll(resp.Body)
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create new request: %w", err)
+	}
+
+	req.Header.Add("X-RapidAPI-Key", app.Config.APIKey)
+	req.Header.Add("X-RapidAPI-Host", APIDomain)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("send request: %w", err)
+	}
+
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
 	}
 
 	hObj := horoscopeResponse{}
@@ -28,16 +41,16 @@ func (sol *solution) getZodiacForecast(sunsign string) (*horoscopeResponse, erro
 
 	// feels Genesha -> sage tells
 	hObj.Text = strings.Replace(
-		hObj.Text, "feels "+sol.Config.WordFilter.ReplaceWordFrom,
-		sol.Config.WordFilter.RaplaceWordTo+" tells", -1,
+		hObj.Text, "feels "+app.Config.WordFilter.ReplaceWordFrom,
+		app.Config.WordFilter.RaplaceWordTo+" tells", -1,
 	)
 	// Genesha -> sage
 	hObj.Text = strings.Replace(
-		hObj.Text, sol.Config.WordFilter.ReplaceWordFrom,
-		sol.Config.WordFilter.RaplaceWordTo, -1,
+		hObj.Text, app.Config.WordFilter.ReplaceWordFrom,
+		app.Config.WordFilter.RaplaceWordTo, -1,
 	)
 	// . sage -> . A sage
-	hObj.Text = strings.Replace(hObj.Text, ". "+sol.Config.WordFilter.RaplaceWordTo, ". "+
-		strings.ToTitle(sol.Config.WordFilter.RaplaceWordTo), -1)
+	hObj.Text = strings.Replace(hObj.Text, ". "+app.Config.WordFilter.RaplaceWordTo, ". "+
+		strings.ToTitle(app.Config.WordFilter.RaplaceWordTo), -1)
 	return &hObj, nil
 }

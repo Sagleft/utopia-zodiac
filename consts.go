@@ -25,7 +25,8 @@ const (
 	moonTitlePosY  = 76
 )
 
-const APIBaseURL = "http://horoscope-api.herokuapp.com/horoscope/"
+const APIDomain = "horoscope-astrology.p.rapidapi.com"
+const APIBaseURL = "https://" + APIDomain + "/horoscope"
 
 var sunSigns = []sunsignData{
 	sunsignData{Tag: "aquarius", Icon: "♒️"},
