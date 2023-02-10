@@ -9,6 +9,7 @@ const (
 	postImageHeight = 450
 	postImageInput  = "img/post_template.png"
 	postImageOutput = "post.png"
+	configFilePath  = "config.json"
 
 	postMaxLength = 4096
 

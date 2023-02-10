@@ -9,15 +9,17 @@ import (
 	"image/draw"
 	"image/png"
 	"io/ioutil"
+	"log"
 	"math"
 	"net/http"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/IvanMenshykov/MoonPhase"
+	swissknife "github.com/Sagleft/swiss-knife"
+	utopiago "github.com/Sagleft/utopialib-go/v2"
 	"github.com/golang/freetype"
 	"github.com/golang/freetype/truetype"
 	"github.com/nfnt/resize"
@@ -25,23 +27,22 @@ import (
 )
 
 func main() {
-	sol := newSolution()
+	cfg := config{}
+	if err := swissknife.ParseStructFromJSONFile(configFilePath, &cfg); err != nil {
+		log.Fatalln(err)
+	}
+
+	sol := newSolution(cfg)
 	err := sol.run()
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 }
 
-//https://api.telegram.org/bot<id>/getChat?chat_id=@<chat_tag>
-func newSolution() *solution {
+func newSolution(cfg config) *solution {
 	return &solution{
-		Config: solutionParams{
-			BotToken:        "",
-			ChannelChatID:   "@testgozod",
-			TimeVariant:     "day",
-			ReplaceWordFrom: "Ganesha",
-			RaplaceWordTo:   "a wise man",
-		},
+		Config: cfg,
+		Utopia: utopiago.NewUtopiaClient(cfg.Utopia),
 	}
 }
 
@@ -162,7 +163,7 @@ func (sol *solution) makePost() error {
 		if len(postText+newPostPart) > postMaxLength || i == len(sunSigns)-1 {
 			//send post part or full post (if it is last post part)
 			if i == len(sunSigns)-1 {
-				postText += sol.Config.ChannelChatID
+				postText += sol.Config.ChannelID
 			}
 			err := sol.sendPost(postText)
 			if err != nil {
@@ -187,13 +188,13 @@ type telegramResponseResult struct {
 	Date      int64 `json:"date"`
 }
 
-func (sol *solution) sendPost(postText string) error {
+func (app *solution) sendPost(postText string) error {
 	//https://api.telegram.org/bot<token>/sendMessage?chat_id=<...>&text=<...>
-	tgAPIURL := "https://api.telegram.org/bot" + sol.Config.BotToken +
-		"/sendMessage?chat_id=" + sol.Config.ChannelChatID +
-		"&text=" + url.QueryEscape(postText)
+	/*tgAPIURL := "https://api.telegram.org/bot" + app.Config.ChannelID +
+	"/sendMessage?chat_id=" + app.Config.ChannelID +
+	"&text=" + url.QueryEscape(postText)*/
 
-	if sol.Config.DebugMode {
+	if app.Config.DebugMode {
 		tgAPIURL += "&disable_notification=true"
 	}
 	resp, err := http.Get(tgAPIURL)
@@ -215,9 +216,9 @@ func (sol *solution) sendPost(postText string) error {
 		return errors.New(tResp.Description)
 	}
 
-	//pin post if time variant "month" given
-	if sol.Config.TimeVariant == "month" {
-		err := sol.pinChatMessage(tResp.Result.MessageID)
+	// pin post if time variant "month" given
+	if app.Config.TimeVariant == "month" {
+		err := app.pinChatMessage(tResp.Result.MessageID)
 		if err != nil {
 			return err
 		}
@@ -225,10 +226,10 @@ func (sol *solution) sendPost(postText string) error {
 	return nil
 }
 
-func (sol *solution) pinChatMessage(msgID int64) error {
-	tgAPIURL := "https://api.telegram.org/bot" + sol.Config.BotToken +
-		"/pinChatMessage?chat_id=" + sol.Config.ChannelChatID +
-		"&message_id=" + strconv.FormatInt(msgID, 10) + "&disable_notification=true"
+func (app *solution) pinChatMessage(msgID int64) error {
+	/*tgAPIURL := "https://api.telegram.org/bot" + sol.Config.BotToken +
+	"/pinChatMessage?chat_id=" + sol.Config.ChannelID +
+	"&message_id=" + strconv.FormatInt(msgID, 10) + "&disable_notification=true"*/
 
 	resp, err := http.Get(tgAPIURL)
 	if err != nil {
@@ -351,6 +352,6 @@ func (sol *solution) createPostImage(timeData time.Time) error {
 func (sol *solution) sendPostImage() error {
 	bot := tbot.New(sol.Config.BotToken)
 	client := bot.Client()
-	_, err := client.SendPhotoFile(sol.Config.ChannelChatID, "post.png")
+	_, err := client.SendPhotoFile(sol.Config.ChannelID, "post.png")
 	return err
 }

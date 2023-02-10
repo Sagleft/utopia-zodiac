@@ -1,16 +1,23 @@
 package main
 
+import utopiago "github.com/Sagleft/utopialib-go/v2"
+
 type solution struct {
-	Config solutionParams
+	Config config
+	Utopia utopiago.Client
 }
 
-type solutionParams struct {
-	BotToken        string
-	ChannelChatID   string
-	TimeVariant     string
-	ReplaceWordFrom string
-	RaplaceWordTo   string
-	DebugMode       bool
+type config struct {
+	ChannelID   string          `json:"channelID"`
+	TimeVariant string          `json:"timeVariant"`
+	WordFilter  wordFilter      `json:"wordReplace"`
+	DebugMode   bool            `json:"debug"`
+	Utopia      utopiago.Config `json:"utopia"`
+}
+
+type wordFilter struct {
+	ReplaceWordFrom string `json:"from"`
+	RaplaceWordTo   string `json:"to"`
 }
 
 type apiVariants map[string]string

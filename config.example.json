@@ -1,0 +1,15 @@
+{
+	"channelID": "",
+	"timeVariant": "",
+	"wordReplace": {
+		"from": "Ganesha",
+		"to": "a wise man"
+	},
+	"debug": false,
+	"utopia": {
+		"host": "",
+		"token": "",
+		"port": 22000,
+		"wsport": 25000
+	}
+}
