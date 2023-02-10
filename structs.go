@@ -29,7 +29,9 @@ type sunsignData struct {
 }
 
 type horoscopeResponse struct {
-	Date    string `json:"date"`
-	Text    string `json:"horoscope"`
-	Sunsign string `json:"sunsign"`
+	LuckyNumber int    `json:"lucky_number"` // TBD: use
+	LuckyTime   string `json:"lucky_time"`   // TBD: use
+	Mood        string `json:"mood"`         // TBD: use
+	Text        string `json:"horoscope"`
+	Sunsign     string `json:"sunsign"`
 }
