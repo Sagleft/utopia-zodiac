@@ -1,7 +1,7 @@
 # utopia-zodiac
-An example of WEB 3.0 horoscope bot
+:waxing_crescent_moon: An example of WEB 3.0 horoscope bot
 
-## Configuring the bot
+## :zap: Configuring the bot
 
 1. [Download a ready-made release](releases) or build a bot from source.
 2. [Create API key](https://rapidapi.com/Alejandro99aru/api/horoscope-astrology).
@@ -16,13 +16,13 @@ About fields in the config:
 
 How to get parameters to connect to the Utopia API can be found [in this documentation](https://udocs.gitbook.io/utopia-api/utopia-api/how-to-enable-api-access).
 
-## Build from sources
+## :gear: Build from sources
 
 ```bash
 git clone https://github.com/Sagleft/utopia-zodiac
 go build
 ```
 
-## Useful Links
+## :eyes: Useful Links
 
 Looking for examples of projects for Utopia API? [Check out this documentation](https://udocs.gitbook.io/utopia-api/examples-of-projects).
