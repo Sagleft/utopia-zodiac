@@ -1,16 +1,20 @@
 package main
 
 const (
-	timeLayoutUS      = "January 2"
-	timeLayoutMonth   = "January"
-	timeLayoutDay     = "Monday"
-	timeLayoutYear    = "2006"
-	postImageWidth    = 800
-	postImageHeight   = 450
-	postImageInput    = "img/post_template.png"
-	postImageOutput   = "post.png"
-	postImageFilename = postImageOutput
-	configFilePath    = "config.json"
+	timeLayoutUS            = "January 2"
+	timeLayoutMonth         = "January"
+	timeLayoutDay           = "Monday"
+	timeLayoutYear          = "2006"
+	postImageWidth          = 800
+	postImageHeight         = 450
+	postImageInput          = "img/post_template.png"
+	postImageOutput         = "post.png"
+	moonPhaseImageExtension = "png"
+	moonPhaseImagesDir      = "img/moon"
+	postImageFilename       = postImageOutput
+	configFilePath          = "config.json"
+	fontRegularPath         = "fonts/Akrobat-Regular.ttf"
+	fontBoldPath            = "fonts/Akrobat-Bold.ttf"
 
 	postMaxLength = 4096
 
