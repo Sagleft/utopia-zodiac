@@ -38,3 +38,6 @@ go build
 [A topic about a bot in the forum](https://talk.u.is/viewtopic.php?id=361).
 
 Looking for examples of projects for Utopia API? [Check out this documentation](https://udocs.gitbook.io/utopia-api/examples-of-projects).
+
+---
+[![udocs](https://github.com/Sagleft/ures/blob/master/udocs-btn.png?raw=true)](https://udocs.gitbook.io/utopia-api/)
